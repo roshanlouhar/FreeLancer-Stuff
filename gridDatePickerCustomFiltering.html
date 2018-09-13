@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Dynamically change date format</title>
+    <script src="http://code.jquery.com/jquery-1.7.1.min.js"></script>
+    <script src="http://cdn.kendostatic.com/2012.1.515/js/kendo.all.min.js"></script>
+    <link href="http://cdn.kendostatic.com/2012.1.515/styles/kendo.common.min.css" rel="stylesheet" />
+	<link href="http://cdn.kendostatic.com/2012.1.515/styles/kendo.default.min.css" rel="stylesheet" />
+</head>
+<body>
+
+	<input id="dropDownList"></input>
+	<br />
+	<div id="grid"></div>
+	
+	<script>
+		var sampleData = [
+			{ name: "John", date: new Date("October 13, 2012 11:13:00")},
+			{ name: "Lisa", date: new Date("March 18, 2012 07:13:00")},
+			{ name: "Jack", date: new Date("September 28, 2011 12:28:43")},
+			{ name: "Maria", date: new Date("May 28, 2012 11:13:00")},
+			{ name: "Steven", date: new Date("May 31, 2012 07:13:00")},
+			{ name: "Bob", date: new Date("September 02, 2012 12:28:43")}
+		];
+		
+		var flag = 1;
+		
+		function formatDate(date) {
+			switch(flag)
+			{
+				case 1:
+					return kendo.toString(date, "g");
+				case 2:
+					return kendo.toString(date, "d");
+				case 3:
+					return kendo.toString(date, "Y");
+				default:
+					return kendo.toString(date, "F");
+			}
+		}
+		
+		$("#dropDownList").kendoDropDownList({
+			dataTextField: "text",
+			dataValueField: "value",
+			dataSource: [
+				{ text: "Weekly", value: "1" },
+				{ text: "Monthly", value: "2" },
+				{ text: "Yearly", value: "3" }
+			],
+			index: 0,
+			change: function(e) {
+				flag = parseInt(this.value());
+				console.log(flag);
+				$("#grid").data("kendoGrid").refresh();
+			}
+		});
+		
+		$("#grid").kendoGrid({
+			dataSource: {
+				data: sampleData,
+				schema: {
+					model: {
+						fields: {
+							name: { type: "string" },
+							date: { type: "date" }
+						}
+					}
+				}
+			},
+			columns: [
+				{ field: "name", title: "Name" },
+				{ field: "date", title: "Date" , template: "#= formatDate(date) #"}
+			],
+			filterable: true
+		});
+		
+		$(document).ready(function() {
+			$("th[data-title=Date]")
+				.data("kendoFilterMenu")
+					.form.find("button[type=submit]")
+						.click(function(e) {
+							//gets filter type
+							var filterType = $(this.form).find($("select[data-role=dropdownlist]")).eq(0).val();
+							//if filter is "Is equal to"
+							if(filterType == "eq") {
+								e.preventDefault();
+								//gets the datePicker input date
+								var selectedDate = $(this.form).find($("input[data-role=datepicker]")).eq(0).val();
+								//create a filter
+								$("#grid").data("kendoGrid").dataSource.filter({
+									field: "date",
+									//create custom filter operator
+									operator: function(fieldDate) {
+
+										var parsedSelectedDate = kendo.parseDate(selectedDate);
+										//parse the field date in order to ignore the time
+										var parsedFieldDate = new Date(fieldDate.getFullYear(),  fieldDate.getMonth(), fieldDate.getDate());
+										var result = (parsedFieldDate.getTime() == parsedSelectedDate.getTime());
+
+										return result;
+
+									},
+									value: selectedDate
+								});
+								//close filter window
+								$("th[data-title=Date]").data("kendoFilterMenu").popup.close();
+							}
+							console.log("filter"); 
+						});
+		});
+	</script>
+</body>
+</html>
